@@ -78,6 +78,36 @@ void loop(void)
         currLevel = 3;
     }
 
+
+
+     // Blink the white LED if distance is less than 9.5
+    if (distance < 9.5) {
+       
+       unsigned long currentMillis = millis();
+
+        if (currentMillis - previousMillis >= interval) {
+            previousMillis = currentMillis;
+            
+            if (ledState == LOW) {
+              ledState = HIGH;
+            } 
+              
+            else {
+              ledState = LOW;
+            }
+  
+            digitalWrite(WHITEPIN, ledState);
+          }
+    } 
+    
+    
+    else {
+        // Turn off the white LED if distance is greater than or equal to 9.5
+        digitalWrite(WHITEPIN, LOW);
+    }
+
+    
+
     Serial.print(distance);
     Serial.print('\t');
     Serial.println(currLevel);
@@ -87,6 +117,8 @@ void loop(void)
   if (currLevel > 0 && prevLevel != currLevel) {
 
 
+    ledState = LOW;
+    
     for (int i = 0; i < 3; i++) {
         // temporary bug fix
     
@@ -126,10 +158,7 @@ void loop(void)
             updateVolume();
         }
     }
-
-    digitalWrite(WHITEPIN, LOW);
     digitalWrite(ledPin, LOW);
-    
     prevLevel = currLevel; 
   }
 

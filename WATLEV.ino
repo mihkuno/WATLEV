@@ -59,76 +59,76 @@ void setup(void)
 
 void loop(void)
 {
-  updateVolume();
+    updateVolume();
 
-  const float distance = getDistance();
-   
-  if (distance > 8.5) {
-    currLevel = 0;
-  }
-  else if (distance <= 8 && distance >= 7.5) {
-     currLevel = 1;
-  }
+    const float distance = getDistance();
+    
+    if (distance > 8.5) {
+        currLevel = 0;
+    }
+    else if (distance <= 8 && distance >= 7.5) {
+        currLevel = 1;
+    }
 
-  else if (distance <= 5 && distance >= 4.5) {
-     currLevel = 2;
-  }
+    else if (distance <= 5 && distance >= 4.5) {
+        currLevel = 2;
+    }
 
-  else if (distance <= 2 && distance >= 1.5) {
-     currLevel = 3;
-  }
+    else if (distance <= 2 && distance >= 1.5) {
+        currLevel = 3;
+    }
 
-  Serial.print(distance);
-  Serial.print('\t');
-  Serial.println(currLevel);
+    Serial.print(distance);
+    Serial.print('\t');
+    Serial.println(currLevel);
 
   
   
   if (currLevel > 0 && prevLevel != currLevel) {
 
 
+    for (int i = 0; i < 3; i++) {
+        // temporary bug fix
     
-    // temporary bug fix
+        if (currLevel == 1) {
+            mp3.playTrackNumber(1, volume, false);        
+        }
+        else if (currLevel == 2) {
+            mp3.playTrackNumber(3, volume, false);        
+        }
+        else if (currLevel == 3) {
+            mp3.playTrackNumber(2, volume, false);        
+        }
+        
+        int ledState = LOW;
+        const int ledPin = currLevel + 2;
+        
+        while(!mp3.playCompleted()) {
+            updateVolume();
 
-    if (currLevel == 1) {
-      mp3.playTrackNumber(1, volume, false);        
-    }
-    else if (currLevel == 2) {
-      mp3.playTrackNumber(3, volume, false);        
-    }
-    else if (currLevel == 3) {
-      mp3.playTrackNumber(2, volume, false);        
-    }
-   
-    int ledState = LOW;
-    const int ledPin = currLevel + 2;
-    
-    while(!mp3.playCompleted()) {
-          updateVolume();
-          
-          unsigned long currentMillis = millis();
-
-          if (currentMillis - previousMillis >= interval) {
-              previousMillis = currentMillis;
-          
-              if (ledState == LOW) {
-                ledState = HIGH;
-              } 
-              
-              else {
-                ledState = LOW;
-              }
-
-              digitalWrite(WHITEPIN, ledState);
-              digitalWrite(ledPin, ledState);
-          }
-
-          updateVolume();
+            unsigned long currentMillis = millis();
+  
+            if (currentMillis - previousMillis >= interval) {
+                previousMillis = currentMillis;
+            
+                if (ledState == LOW) {
+                  ledState = HIGH;
+                } 
+                
+                else {
+                  ledState = LOW;
+                }
+  
+                digitalWrite(WHITEPIN, ledState);
+                digitalWrite(ledPin, ledState);
+            }
+  
+            updateVolume();
+        }
     }
 
     digitalWrite(WHITEPIN, LOW);
     digitalWrite(ledPin, LOW);
-
     
     prevLevel = currLevel; 
   }

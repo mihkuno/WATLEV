@@ -18,27 +18,28 @@ The objective is to play a recording on a certain water level based on the dista
 
 ### UML Class Diagram
 
-+------------------------------------+
-|             MP3Player              |
-+------------------------------------+
-| - mySoftwareSerial: SoftwareSerial*|
+```
++-------------------------------------+
+|             MP3Player               |
++-------------------------------------+
+| - mySoftwareSerial: SoftwareSerial* |
 | - p_RX: int                         |
 | - p_TX: int                         |
-+------------------------------------+
-| + MP3Player(RX: int, TX: int)      |
-| + ~MP3Player()                     |
-| + initialize(): void               |
-| + playTrackNumber(trackNumber: int,|
++-------------------------------------+
+| + MP3Player(RX: int, TX: int)       |
+| + ~MP3Player()                      |
+| + initialize(): void                |
+| + playTrackNumber(trackNumber: int, |
 |     volume: int, waitPlayTerminated:|
 |     boolean): void                  |
-| + playCompleted(): boolean         |
+| + playCompleted(): boolean          |
 | + serialPrintStatus(verbose: int):  |
-|     int                            |
-| - waitPlayIsTerminated(): void     |
-| - statusOnSerial(type: uint8_t,    |
+|     int                             |
+| - waitPlayIsTerminated(): void      |
+| - statusOnSerial(type: uint8_t,     |
 |     value: int): void               |
-+------------------------------------+
-
++-------------------------------------+
+```
 
 ### Software Libraries 
 

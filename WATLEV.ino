@@ -12,18 +12,15 @@
 
 MP3Player mp3(SPKRX, SPKTX);
 
-int volume = 20;
+unsigned long prevLedMillis = 0;
+unsigned long prevSoundMillis = 0;
 
-int prevLevel = 0;
+bool isSoundPlaying = false;
+int soundCount = 0;
+int ledState = LOW;
 int currLevel = 0;
-unsigned long previousMillis = 0; 
-const long interval = 300;
-
-void updateVolume() {
-  const int potval = analogRead(POTPIN);
-  volume = map(potval, 0, 1020, 0, 30);
-  mp3.player.volume(volume);
-}
+int prevLevel = 0;
+int volume = 25;
 
 float getDistance() {
   digitalWrite(TRIGPIN, LOW);  
@@ -39,9 +36,42 @@ float getDistance() {
 }
 
 
-void setup(void)
-{
+void offLight() {
+  digitalWrite(REDPIN, LOW);
+  digitalWrite(ORANGEPIN, LOW);
+  digitalWrite(YELLOWPIN, LOW);
+  digitalWrite(WHITEPIN, LOW);
+}
 
+void updateVolume() {
+  const int potval = analogRead(POTPIN);
+  volume = map(potval, 0, 1020, 0, 30);
+  mp3.player.volume(volume);
+}
+
+void blinkLight(int ledPin = 0) {
+
+    const unsigned long currLedMillis = millis();
+    const unsigned int  interval = 500; 
+
+    if (currLedMillis - prevLedMillis >= interval) {
+        prevLedMillis = currLedMillis;
+    
+        ledState = !ledState;
+        
+        offLight();
+
+        digitalWrite(WHITEPIN, ledState);
+        if (ledPin != 0) {
+          digitalWrite(ledPin, ledState);
+        }
+    }
+}
+
+
+void setup() {
+  
+  Serial.begin(9600);
   pinMode(POTPIN,    INPUT);
   pinMode(TRIGPIN,   OUTPUT);
   pinMode(ECHOPIN,   INPUT);
@@ -49,119 +79,93 @@ void setup(void)
   pinMode(ORANGEPIN, OUTPUT);
   pinMode(YELLOWPIN, OUTPUT);
   pinMode(WHITEPIN,  OUTPUT);
-  
-  Serial.begin(9600);
+
   mp3.initialize();
   mp3.player.EQ(DFPLAYER_EQ_BASS);
-
-  updateVolume();
+  mp3.player.volume(volume);
 }
 
-void loop(void)
-{
+
+
+void loop() {
+
     updateVolume();
 
     const float distance = getDistance();
-    
-    if (distance > 8.5) {
-        currLevel = 0;
-    }
-    else if (distance <= 8 && distance >= 7.5) {
-        currLevel = 1;
-    }
-
-    else if (distance <= 5 && distance >= 4.5) {
-        currLevel = 2;
-    }
-
-    else if (distance <= 2 && distance >= 1.5) {
-        currLevel = 3;
-    }
+    const bool isTrigLevel3 = distance < 2;
+    const bool isTrigLevel2 = distance > 2.5 && distance < 5;
+    const bool isTrigLevel1 = distance > 5.5 && distance < 8;
+    const bool isTrigDetect = distance < 9.5;
+    const bool isTrigHaultWarn  = distance > 8.5;
 
 
+    if (isTrigDetect) {
 
-     // Blink the white LED if distance is less than 9.5
-    if (distance < 9.5) {
-       
-       unsigned long currentMillis = millis();
-
-        if (currentMillis - previousMillis >= interval) {
-            previousMillis = currentMillis;
-            
-            if (ledState == LOW) {
-              ledState = HIGH;
-            } 
-              
-            else {
-              ledState = LOW;
-            }
-  
-            digitalWrite(WHITEPIN, ledState);
-          }
-    } 
-    
-    
-    else {
-        // Turn off the white LED if distance is greater than or equal to 9.5
-        digitalWrite(WHITEPIN, LOW);
-    }
-
-    
-
-    Serial.print(distance);
-    Serial.print('\t');
-    Serial.println(currLevel);
-
-  
-  
-  if (currLevel > 0 && prevLevel != currLevel) {
-
-
-    ledState = LOW;
-    
-    for (int i = 0; i < 3; i++) {
-        // temporary bug fix
+        if (isTrigHaultWarn) {
+           currLevel = 0;
+        }
+        else if (isTrigLevel1) {
+           currLevel = 1;
+        }
+        else if (isTrigLevel2) {
+           currLevel = 2;
+        }
+        else if (isTrigLevel3) {
+           currLevel = 3;
+        }
     
         if (currLevel == 1) {
-            mp3.playTrackNumber(1, volume, false);        
+           blinkLight(YELLOWPIN);  
         }
         else if (currLevel == 2) {
-            mp3.playTrackNumber(3, volume, false);        
+           blinkLight(ORANGEPIN);
         }
         else if (currLevel == 3) {
-            mp3.playTrackNumber(2, volume, false);        
+           blinkLight(REDPIN);
         }
-        
-        int ledState = LOW;
-        const int ledPin = currLevel + 2;
-        
-        while(!mp3.playCompleted()) {
-            updateVolume();
+        else {
+           blinkLight();
+        }
 
-            unsigned long currentMillis = millis();
-  
-            if (currentMillis - previousMillis >= interval) {
-                previousMillis = currentMillis;
-            
-                if (ledState == LOW) {
-                  ledState = HIGH;
-                } 
-                
-                else {
-                  ledState = LOW;
-                }
-  
-                digitalWrite(WHITEPIN, ledState);
-                digitalWrite(ledPin, ledState);
+
+        // if water level changes, reset sound count and interrupt
+        if (prevLevel != currLevel) {
+            soundCount = 0;
+            isSoundPlaying = false;
+        }
+        // play the sound three times
+        if (currLevel > 0 && soundCount < 3 && !isSoundPlaying) {
+           mp3.playTrackNumber(currLevel, volume, false);    
+           isSoundPlaying = true;
+        }
+        if (mp3.playCompleted()) {
+           isSoundPlaying = false;
+           soundCount++;
+
+           // set the timer for reset 
+           if (soundCount == 3) {
+              const unsigned long currSoundMillis = millis();
+              prevSoundMillis = currSoundMillis;
+           }
+        }
+
+        // reset the sound count after 10 seconds
+        if (soundCount == 3) {    
+            const unsigned long currSoundMillis = millis();
+            const unsigned int  interval = 7000; 
+            if (currSoundMillis - prevSoundMillis >= interval) {
+                soundCount = 0;    
             }
-  
-            updateVolume();
         }
+
+        
+        updateVolume();
+        prevLevel = currLevel;
     }
-    digitalWrite(ledPin, LOW);
-    prevLevel = currLevel; 
-  }
-
-  delay(300);
-
+    
+    else {
+        offLight();
+    }
+    
+    delay(500);
 }
